@@ -1,0 +1,4 @@
+# GitHub Pages builds this site with Jekyll.
+# Pages in projects/ use _layouts/project.html and are published at /<slug>/ (see their "permalink").
+exclude:
+  - README.md

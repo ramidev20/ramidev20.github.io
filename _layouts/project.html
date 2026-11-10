@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page.title }} — Downloads</title>
+<meta name="description" content="Download {{ page.title }} and see every version.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@300..900&family=IBM+Plex+Mono:wght@400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<!-- Shared template for every file in projects/. GitHub Pages publishes each one at /<slug>/ -->
+<body data-root="../" data-project="{{ page.slug }}">
+<div id="app"></div>
+<script src="../config.js"></script>
+<script src="../assets/common.js"></script>
+<script src="../assets/project.js"></script>
+</body>
+</html>
