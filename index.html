@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Projects</title>
+<meta name="description" content="Apps and projects I've built. Download them or read the source code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  /* Palette: the PICO-8 fantasy-console colors */
+  :root {
+    --night: #1d2b53;
+    --night-deep: #131c38;
+    --plum: #7e2553;
+    --moss: #008751;
+    --rust: #ab5236;
+    --slate: #5f574f;
+    --silver: #c2c3c7;
+    --cream: #fff1e8;
+    --red: #ff004d;
+    --orange: #ffa300;
+    --yellow: #ffec27;
+    --green: #00e436;
+    --sky: #29adff;
+    --lavender: #83769c;
+    --pink: #ff77a8;
+    --black: #000000;
+    --px: 4px;
+    --display: "Press Start 2P", ui-monospace, monospace;
+    --body: "VT323", ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--cream);
+    font-family: var(--body);
+    font-size: 22px;
+    line-height: 1.25;
+    -webkit-font-smoothing: none;
+  }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+  a { color: var(--sky); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 720px) { .wrap { padding: 0 32px; } }
+
+  :focus-visible { outline: 4px dashed var(--yellow); outline-offset: 6px; }
+
+  /* ---------- Top bar ---------- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 0; }
+  .brand { font-family: var(--display); font-size: 11px; color: var(--cream); text-decoration: none; line-height: 1.6; }
+  .topbar nav { display: flex; gap: 20px; flex-wrap: wrap; justify-content: flex-end; }
+  .topbar nav a { color: var(--silver); text-decoration: none; font-size: 24px; }
+  .topbar nav a:hover { color: var(--yellow); }
+  @media (max-width: 520px) {
+    .topbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .topbar nav { justify-content: flex-start; gap: 18px; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 40px 0 0; }
+  .hero-canvas-box { width: 100%; min-height: 80px; }
+  #heroCanvas { display: block; max-width: 100%; }
+  .tagline { font-size: 30px; max-width: 32ch; margin: 28px 0 32px; color: var(--cream); }
+  .hero-actions { display: flex; gap: 20px; flex-wrap: wrap; padding-bottom: 56px; }
+
+  /* The floor tiles under the hero, like the first screen of a level */
+  .ground {
+    height: 32px;
+    background:
+      linear-gradient(var(--green) 0 8px, transparent 8px),
+      repeating-linear-gradient(90deg, var(--moss) 0 16px, #006a40 16px 32px);
+    border-top: 4px solid var(--black);
+  }
+  .dirt {
+    height: 24px;
+    background: repeating-linear-gradient(90deg, var(--rust) 0 24px, #8a3f28 24px 32px, var(--rust) 32px 48px);
+    border-bottom: 4px solid var(--black);
+  }
+
+  /* ---------- Pixel buttons ---------- */
+  .btn {
+    --bg: var(--yellow);
+    --fg: var(--black);
+    display: inline-flex; align-items: center; gap: 10px;
+    margin: var(--px);
+    padding: 12px 14px;
+    font-family: var(--display); font-size: 10px; line-height: 1.4;
+    color: var(--fg); background: var(--bg);
+    text-decoration: none; border: 0; cursor: pointer;
+    box-shadow:
+      0 calc(var(--px) * -1) var(--black),
+      0 var(--px) var(--black),
+      calc(var(--px) * -1) 0 var(--black),
+      var(--px) 0 var(--black),
+      inset -4px -4px 0 rgba(0,0,0,.28),
+      inset 4px 4px 0 rgba(255,255,255,.35);
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active {
+    transform: translateY(2px);
+    box-shadow:
+      0 calc(var(--px) * -1) var(--black),
+      0 var(--px) var(--black),
+      calc(var(--px) * -1) 0 var(--black),
+      var(--px) 0 var(--black),
+      inset 4px 4px 0 rgba(0,0,0,.28);
+  }
+  .btn.secondary { --bg: var(--silver); }
+  .btn.dark { --bg: var(--night); --fg: var(--cream); }
+  .btn small { font-family: var(--body); font-size: 18px; opacity: .75; }
+  .btn svg { width: 12px; height: 12px; flex: none; shape-rendering: crispEdges; }
+
+  /* ---------- Shelf ---------- */
+  .shelf { padding: 64px 0 80px; background: var(--night-deep); }
+  .shelf-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+  .shelf h2 { font-family: var(--display); font-size: 18px; line-height: 1.5; margin: 0; }
+  .shelf-head p { margin: 8px 0 0; color: var(--silver); max-width: 46ch; }
+
+  .search { display: flex; align-items: center; background: var(--cream); color: var(--black); margin: var(--px);
+    box-shadow: 0 -4px var(--black), 0 4px var(--black), -4px 0 var(--black), 4px 0 var(--black); }
+  .search label { padding: 0 6px 0 12px; font-size: 22px; }
+  .search input { border: 0; background: transparent; font-family: var(--body); font-size: 24px; padding: 8px 12px 8px 4px; width: 220px; color: var(--black); }
+  .search input:focus { outline: none; }
+  .search:focus-within { outline: 4px dashed var(--yellow); outline-offset: 6px; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 36px; }
+  .chip { --bg: var(--night); --fg: var(--silver); font-size: 9px; padding: 10px 12px; }
+  .chip[aria-pressed="true"] { --bg: var(--sky); --fg: var(--black); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 36px 32px; }
+
+  /* A project is a game cartridge */
+  .cart {
+    position: relative;
+    display: flex; flex-direction: column;
+    background: var(--silver);
+    color: var(--night);
+    border: 4px solid var(--black);
+    box-shadow: 8px 8px 0 var(--black);
+    padding: 26px 18px 18px;
+  }
+  .cart::before { /* grip ridges along the top edge */
+    content: ""; position: absolute; top: 6px; left: 28px; right: 28px; height: 8px;
+    background: repeating-linear-gradient(90deg, var(--lavender) 0 8px, transparent 8px 16px);
+  }
+  .label {
+    display: flex; gap: 14px; align-items: center;
+    background: var(--c, var(--yellow)); color: var(--label-ink, var(--black));
+    border: 4px solid var(--black);
+    padding: 12px;
+  }
+  .screen { flex: none; width: 56px; height: 56px; background: var(--night); border: 4px solid var(--black); display: grid; place-items: center; }
+  .screen canvas, .screen img { width: 40px; height: 40px; image-rendering: pixelated; }
+  .label h3 { font-family: var(--display); font-size: 12px; line-height: 1.5; margin: 0; }
+  .label .ver { margin: 6px 0 0; font-size: 19px; opacity: .85; }
+  .desc { margin: 16px 0 12px; font-size: 22px; }
+  .tags { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; padding: 0; }
+  .tags li { font-size: 18px; background: var(--night); color: var(--cream); padding: 0 8px; }
+  .actions { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+  .dl-list { display: flex; flex-wrap: wrap; gap: 10px; }
+  .actions .btn { justify-content: center; }
+  .note { font-size: 19px; color: var(--slate); margin: 0; }
+
+  .empty { text-align: center; padding: 48px 16px; color: var(--silver); }
+  .empty p { margin: 0 0 20px; font-size: 26px; }
+
+  footer { padding: 32px 0 48px; color: var(--silver); font-size: 20px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<header class="wrap topbar">
+  <a class="brand" href="#" id="brand">Your Name</a>
+  <nav aria-label="Main">
+    <a href="#shelf">Projects</a>
+    <a id="navGithub" href="#">GitHub</a>
+    <a id="navEmail" href="#">Contact</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <h1 class="sr-only" id="heroTitle">Your Name</h1>
+      <div class="hero-canvas-box" id="heroBox"><canvas id="heroCanvas" aria-hidden="true"></canvas></div>
+      <p class="tagline" id="tagline"></p>
+      <div class="hero-actions">
+        <a class="btn" href="#shelf">Browse projects</a>
+        <a class="btn secondary" id="heroGithub" href="#">My GitHub</a>
+      </div>
+    </div>
+    <div class="ground" aria-hidden="true"></div>
+    <div class="dirt" aria-hidden="true"></div>
+  </section>
+
+  <section class="shelf" id="shelf" aria-labelledby="shelfTitle">
+    <div class="wrap">
+      <div class="shelf-head">
+        <div>
+          <h2 id="shelfTitle">Projects</h2>
+          <p>Download an app for your device, or open the source code to see how it works.</p>
+        </div>
+        <div class="search">
+          <label for="q" aria-hidden="true">&gt;</label>
+          <input id="q" type="search" placeholder="Search projects" aria-label="Search projects" autocomplete="off">
+        </div>
+      </div>
+      <div class="filters" id="filters" role="group" aria-label="Filter by platform"></div>
+      <div class="grid" id="grid"></div>
+      <div class="empty" id="empty" hidden>
+        <p id="emptyText"></p>
+        <button class="btn" id="clearBtn" type="button">Show all projects</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span id="copy"></span>
+    <span>Hosted on GitHub Pages.</span>
+  </div>
+</footer>
+
+<script>
+/* ================================================================
+   EDIT THIS PART — everything on the page comes from CONFIG.
+   ----------------------------------------------------------------
+   name        Your full name (top bar, page title)
+   handle      Short text drawn in big pixels in the hero (keep it short)
+   tagline     One sentence under the hero
+   github      Your GitHub username
+   email       Contact address (leave "" to hide the Contact link)
+
+   Each project:
+   name         Project title
+   description  One or two sentences, plain language
+   repo         "username/repo-name" (gives the Source code button)
+   platforms    Any of: "Android", "iOS", "Windows", "macOS", "Linux", "Web"
+   tags         Short words: language, framework, etc.
+   color        Label color (hex). Bright colors look best.
+   icon         Optional path to your own icon image, e.g. "icons/notes.png".
+                If empty, a pixel sprite is generated from the name.
+   autoRelease  true = fetch download files from the repo's latest GitHub
+                Release automatically (recommended)
+   downloads    Manual download links, used when autoRelease is false or
+                the repo has no release: { platform, label, url }
+   website      Optional link for web apps ("Open app" button)
+   version      Optional version text when not using autoRelease
+   ================================================================ */
+const CONFIG = {
+  name: "Your Name",
+  handle: "YOUR NAME",
+  tagline: "I build small, useful apps. Pick one, download it, or read the code.",
+  github: "your-username",
+  email: "you@example.com",
+  projects: [
+    {
+      name: "Pocket Budget",
+      description: "Log what you spend in two taps. Works fully offline and never asks for an account.",
+      repo: "your-username/pocket-budget",
+      platforms: ["Android"],
+      tags: ["Kotlin", "Offline"],
+      color: "#00e436",
+      autoRelease: true,
+      downloads: []
+    },
+    {
+      name: "Pixel Notes",
+      description: "A tiny notes app with folders, search and Markdown. Opens in under a second.",
+      repo: "your-username/pixel-notes",
+      platforms: ["Windows", "macOS", "Linux"],
+      tags: ["Electron", "Markdown"],
+      color: "#29adff",
+      autoRelease: true,
+      downloads: []
+    },
+    {
+      name: "Weather Bar",
+      description: "Shows today's temperature and rain chance in your Windows taskbar.",
+      repo: "your-username/weather-bar",
+      platforms: ["Windows"],
+      tags: ["C#", "WinUI"],
+      color: "#ffa300",
+      autoRelease: false,
+      version: "1.0.0",
+      downloads: [
+        { platform: "Windows", label: "Installer (.exe)", url: "https://github.com/your-username/weather-bar/releases" }
+      ]
+    },
+    {
+      name: "Tile Slide",
+      description: "A sliding-tile puzzle you can play right in the browser. 40 levels, no ads.",
+      repo: "your-username/tile-slide",
+      platforms: ["Web"],
+      tags: ["JavaScript", "Game"],
+      color: "#ff77a8",
+      autoRelease: false,
+      website: "https://your-username.github.io/tile-slide/",
+      downloads: []
+    }
+  ]
+};
+/* ======================= END OF EDITABLE PART ======================= */
+
+const $ = (s) => document.querySelector(s);
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- Page text ---------- */
+document.title = `${CONFIG.name} — Projects`;
+$("#brand").textContent = CONFIG.name;
+$("#heroTitle").textContent = CONFIG.name;
+$("#tagline").textContent = CONFIG.tagline;
+const ghUrl = `https://github.com/${CONFIG.github}`;
+$("#navGithub").href = ghUrl;
+$("#heroGithub").href = ghUrl;
+if (CONFIG.email) $("#navEmail").href = `mailto:${CONFIG.email}`; else $("#navEmail").remove();
+$("#copy").textContent = `© ${new Date().getFullYear()} ${CONFIG.name}`;
+
+/* ---------- Hero: the handle drawn as big falling pixel blocks ---------- */
+const hero = { cells: [], cols: 0, rows: 0, lines: [] };
+
+function sampleText(text) {
+  const c = document.createElement("canvas");
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.font = '8px "Press Start 2P", monospace';
+  const w = Math.ceil(ctx.measureText(text).width) + 2;
+  c.width = w; c.height = 10;
+  ctx.font = '8px "Press Start 2P", monospace';
+  ctx.textBaseline = "top";
+  ctx.fillStyle = "#000";
+  ctx.fillText(text, 0, 1);
+  const data = ctx.getImageData(0, 0, w, 10).data;
+  const cells = [];
+  let maxX = 0;
+  for (let y = 0; y < 10; y++) for (let x = 0; x < w; x++) {
+    if (data[(y * w + x) * 4 + 3] > 110) { cells.push([x, y]); maxX = Math.max(maxX, x); }
+  }
+  return { cells, width: maxX + 1 };
+}
+
+function layoutHero() {
+  const box = $("#heroBox");
+  const avail = box.clientWidth;
+  const text = (CONFIG.handle || CONFIG.name).trim();
+  let lines = [text];
+  let sampled = lines.map(sampleText);
+  let cols = Math.max(...sampled.map(s => s.width));
+  let bs = Math.floor(avail / (cols + 1));
+  // Break onto several lines when one line would make the pixels too small
+  if (bs < 7 && text.includes(" ")) {
+    lines = text.split(/\s+/);
+    sampled = lines.map(sampleText);
+    cols = Math.max(...sampled.map(s => s.width));
+    bs = Math.floor(avail / (cols + 1));
+  }
+  bs = Math.max(2, Math.min(bs, 16));
+  const lineH = 10;
+  const cells = [];
+  sampled.forEach((s, li) => s.cells.forEach(([x, y]) => cells.push({ x, y: y + li * lineH })));
+  hero.cells = cells.map(c => ({ ...c, delay: c.x * 14 + Math.random() * 160 }));
+  hero.cols = cols; hero.rows = lines.length * lineH; hero.bs = bs;
+}
+
+function drawHero(t) {
+  const cv = $("#heroCanvas");
+  const ctx = cv.getContext("2d");
+  const bs = hero.bs, sh = Math.max(2, Math.round(bs / 2));
+  const W = hero.cols * bs + sh, H = hero.rows * bs + sh;
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  ctx.clearRect(0, 0, W, H);
+  let done = true;
+  const dur = 420;
+  const pos = hero.cells.map(c => {
+    const p = t === Infinity ? 1 : Math.min(1, Math.max(0, (t - c.delay) / dur));
+    if (p < 1) done = false;
+    const ease = 1 - Math.pow(1 - p, 3);
+    const yPx = Math.round(((c.y * bs) - (1 - ease) * (H + 40)) / 2) * 2;
+    return { x: c.x * bs, y: yPx, vis: p > 0 };
+  });
+  // shadow layer, then block layer
+  ctx.fillStyle = "#7e2553";
+  pos.forEach(p => p.vis && ctx.fillRect(p.x + sh, p.y + sh, bs, bs));
+  const edge = Math.max(1, Math.round(bs / 4));
+  pos.forEach(p => {
+    if (!p.vis) return;
+    ctx.fillStyle = "#ffec27"; ctx.fillRect(p.x, p.y, bs, bs);
+    ctx.fillStyle = "#ffa300"; ctx.fillRect(p.x, p.y + bs - edge, bs, edge);
+  });
+  return done;
+}
+
+async function startHero() {
+  try { await document.fonts.load('8px "Press Start 2P"'); } catch (e) {}
+  layoutHero();
+  if (reduceMotion) { drawHero(Infinity); return; }
+  const t0 = performance.now();
+  const step = (now) => { if (!drawHero(now - t0)) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { layoutHero(); drawHero(Infinity); }, 120);
+});
+startHero();
+
+/* ---------- Generated pixel sprites for project icons ---------- */
+function hash(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
+}
+function makeSprite(seed, color) {
+  const cv = document.createElement("canvas");
+  cv.width = 8; cv.height = 8;
+  cv.setAttribute("aria-hidden", "true");
+  const ctx = cv.getContext("2d");
+  const rnd = hash(seed);
+  const shades = [color, "#fff1e8", color, "#7e2553"];
+  for (let y = 1; y < 7; y++) for (let x = 0; x < 4; x++) {
+    if (rnd() < 0.42) continue;
+    ctx.fillStyle = shades[Math.floor(rnd() * shades.length)];
+    ctx.fillRect(x, y, 1, 1);
+    ctx.fillRect(7 - x, y, 1, 1);
+  }
+  return cv;
+}
+
+/* ---------- Release data from GitHub ---------- */
+function platformOf(fileName) {
+  const n = fileName.toLowerCase();
+  if (/\.(apk|aab)$/.test(n)) return "Android";
+  if (/\.ipa$/.test(n)) return "iOS";
+  if (/\.(exe|msi|msix|appx)$/.test(n)) return "Windows";
+  if (/\.(dmg|pkg)$/.test(n)) return "macOS";
+  if (/\.(appimage|deb|rpm|snap|flatpak)$/.test(n)) return "Linux";
+  if (/(win|windows)/.test(n)) return "Windows";
+  if (/(mac|darwin|osx)/.test(n)) return "macOS";
+  if (/linux/.test(n)) return "Linux";
+  return "";
+}
+function formatSize(bytes) {
+  if (!bytes) return "";
+  return bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+async function fetchRelease(repo) {
+  const key = "rel:" + repo;
+  try { const c = sessionStorage.getItem(key); if (c) return JSON.parse(c); } catch (e) {}
+  const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
+  if (!res.ok) throw new Error(res.status);
+  const r = await res.json();
+  const slim = {
+    tag: r.tag_name, date: r.published_at, url: r.html_url,
+    assets: (r.assets || []).map(a => ({ name: a.name, url: a.browser_download_url, size: a.size }))
+  };
+  try { sessionStorage.setItem(key, JSON.stringify(slim)); } catch (e) {}
+  return slim;
+}
+
+/* ---------- Cards ---------- */
+const ICON_DOWN = '<svg viewBox="0 0 6 6" aria-hidden="true"><path fill="currentColor" d="M2 0h2v3h1v1H4v1H2V4H1V3h1z"/><path fill="currentColor" d="M0 5h6v1H0z"/></svg>';
+const ICON_CODE = '<svg viewBox="0 0 7 5" aria-hidden="true"><path fill="currentColor" d="M2 0h1v1H2v1H1v1h1v1h1v1H2V4H1V3H0V2h1V1h1zM4 0h1v1h1v1h1v1H6v1H5v1H4V4h1V3h1V2H5V1H4z"/></svg>';
+
+function inkFor(hex) {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 140 ? "#000000" : "#fff1e8";
+}
+function el(tag, attrs = {}, html = "") {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (html) e.innerHTML = html;
+  return e;
+}
+const esc = (s) => String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+function downloadButton(item) {
+  const a = el("a", { class: "btn", href: item.url, rel: "noopener" });
+  const size = item.size ? ` <small>${formatSize(item.size)}</small>` : "";
+  const title = item.platform ? `Download for ${item.platform}` : "Download";
+  a.innerHTML = `${ICON_DOWN}<span>${esc(title)}</span>${size}`;
+  if (item.label) a.title = item.label;
+  return a;
+}
+
+function renderActions(p, box, release) {
+  box.innerHTML = "";
+  const list = el("div", { class: "dl-list" });
+  let items = [];
+  if (release && release.assets.length) {
+    items = release.assets.map(a => ({ platform: platformOf(a.name), label: a.name, url: a.url, size: a.size }));
+    // When a platform has several files, label them by file name so people can tell them apart
+    const counts = {};
+    items.forEach(i => counts[i.platform] = (counts[i.platform] || 0) + 1);
+    items.forEach(i => { if (counts[i.platform] > 1 || !i.platform) i.platform = (i.platform ? i.platform + " " : "") + "(" + i.label + ")"; });
+  } else {
+    items = (p.downloads || []).slice();
+  }
+  items.forEach(i => list.appendChild(downloadButton(i)));
+  if (p.website) {
+    const a = el("a", { class: "btn", href: p.website, rel: "noopener" });
+    a.innerHTML = `<span>Open app</span>`;
+    list.appendChild(a);
+  }
+  if (!items.length && !p.website && p.repo) {
+    const a = el("a", { class: "btn", href: `https://github.com/${p.repo}/releases`, rel: "noopener" });
+    a.innerHTML = `${ICON_DOWN}<span>See releases</span>`;
+    list.appendChild(a);
+  }
+  if (list.children.length) box.appendChild(list);
+  if (p.repo) {
+    const src = el("a", { class: "btn dark", href: `https://github.com/${p.repo}`, rel: "noopener" });
+    src.innerHTML = `${ICON_CODE}<span>Source code</span>`;
+    box.appendChild(src);
+  }
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+const cards = CONFIG.projects.map((p) => {
+  const card = el("article", { class: "cart" });
+  const color = p.color || "#ffec27";
+  card.style.setProperty("--c", color);
+  card.style.setProperty("--label-ink", inkFor(color));
+
+  const label = el("div", { class: "label" });
+  const screen = el("div", { class: "screen" });
+  if (p.icon) screen.appendChild(el("img", { src: p.icon, alt: "" }));
+  else screen.appendChild(makeSprite(p.name, color));
+  const titles = el("div");
+  titles.appendChild(el("h3", {}, esc(p.name)));
+  const ver = el("p", { class: "ver" }, p.version ? `Version ${esc(p.version)}` : "");
+  titles.appendChild(ver);
+  label.append(screen, titles);
+
+  const desc = el("p", { class: "desc" }, esc(p.description || ""));
+  const tags = el("ul", { class: "tags", "aria-label": "Built with" });
+  [...(p.platforms || []), ...(p.tags || [])].forEach(t => tags.appendChild(el("li", {}, esc(t))));
+
+  const actions = el("div", { class: "actions" });
+  renderActions(p, actions, null);
+
+  card.append(label, desc, tags, actions);
+
+  if (p.autoRelease && p.repo) {
+    ver.textContent = "Checking latest version";
+    fetchRelease(p.repo)
+      .then(r => {
+        ver.textContent = r.tag ? `Version ${r.tag.replace(/^v/i, "")}, ${formatDate(r.date)}` : "";
+        renderActions(p, actions, r);
+      })
+      .catch(() => { ver.textContent = p.version ? `Version ${p.version}` : ""; });
+  }
+  return { p, card };
+});
+
+/* ---------- Filters & search ---------- */
+const state = { platform: "All", q: "" };
+const platforms = ["All", ...new Set(CONFIG.projects.flatMap(p => p.platforms || []))];
+const filterBox = $("#filters");
+platforms.forEach(name => {
+  const count = name === "All" ? CONFIG.projects.length : CONFIG.projects.filter(p => (p.platforms || []).includes(name)).length;
+  const b = el("button", { class: "btn chip", type: "button", "aria-pressed": String(name === "All") }, `${esc(name)} (${count})`);
+  b.addEventListener("click", () => {
+    state.platform = name;
+    filterBox.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c === b)));
+    render();
+  });
+  filterBox.appendChild(b);
+});
+
+function render() {
+  const grid = $("#grid");
+  grid.innerHTML = "";
+  const q = state.q.toLowerCase();
+  const shown = cards.filter(({ p }) => {
+    const okPlat = state.platform === "All" || (p.platforms || []).includes(state.platform);
+    const hay = [p.name, p.description, ...(p.tags || []), ...(p.platforms || [])].join(" ").toLowerCase();
+    return okPlat && (!q || hay.includes(q));
+  });
+  shown.forEach(({ card }) => grid.appendChild(card));
+  const empty = $("#empty");
+  empty.hidden = shown.length > 0;
+  if (!shown.length) {
+    $("#emptyText").textContent = state.q
+      ? `No projects match "${state.q}"${state.platform !== "All" ? " on " + state.platform : ""}.`
+      : `No projects for ${state.platform} yet.`;
+  }
+}
+$("#q").addEventListener("input", (e) => { state.q = e.target.value.trim(); render(); });
+$("#clearBtn").addEventListener("click", () => {
+  state.q = ""; state.platform = "All"; $("#q").value = "";
+  filterBox.querySelectorAll(".chip").forEach((c, i) => c.setAttribute("aria-pressed", String(i === 0)));
+  render();
+});
+render();
+</script>
+</body>
+</html>
