@@ -123,7 +123,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => move
 setCurrent(sectionAtScroll());
 
 /* ---------- Project cards ---------- */
-const hasVersions = (p) => !!(releaseSource(p) || (p.versions && p.versions.length));
+const hasVersions = hasVersionSource;
 
 function renderActions(p, box, latest) {
   box.replaceChildren();
@@ -153,7 +153,7 @@ const cards = CONFIG.projects.map(p => {
   card.append(top, desc, tags, actions);
 
   if (hasVersions(p)) {
-    if (releaseSource(p)) ver.textContent = "Checking latest version";
+    if (p.releasesFolder || releaseSource(p)) ver.textContent = "Checking latest version";
     loadVersions(p).then(list => {
       const latest = list.find(v => !v.prerelease) || list[0];
       ver.innerHTML = latest ? `Version ${esc(cleanTag(latest.tag))}${latest.date ? " · " + esc(formatDate(latest.date)) : ""}` : restingLabel(p);

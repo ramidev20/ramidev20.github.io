@@ -19,15 +19,24 @@
    website       Optional live link → "Open app" button
 
    Versions and downloads (pick one):
+   releasesFolder true = builds are files in this site repo, in
+                 projects/<slug>/releases/<version>/  e.g.
+                 projects/daily-dz/releases/1.1.0/DailyDZ-1.1.0.apk
+                 (+ optional notes.txt; a first line "Date: 2026-11-10" sets the date)
    autoRelease   true = list every GitHub Release of the repo automatically.
-   releasesRepo  Use this when the code repo is PRIVATE: create a small PUBLIC
-                 repo (e.g. "ramidev20/daily-dz-releases"), publish your
-                 releases there, and put its name here.
+   releasesRepo  Use this when the code repo is PRIVATE: publish the builds as
+                 releases in a PUBLIC repo instead. Your site repo works:
+                 "ramidev20/ramidev20.github.io".
+   tagPrefix     When several apps share one releases repo, start each release
+                 tag with the app's prefix: tagPrefix "daily-dz-" → tags like
+                 "daily-dz-v1.0.0". The page shows only its own tags, as "v1.0.0".
    versions      Or list versions by hand (newest first):
                  { version: "1.2.0", date: "2026-11-01", notes: "What changed",
                    files: [ { platform: "Android", name: "app.apk", url: "https://…", size: "18 MB" } ] }
    ================================================================ */
 const CONFIG = {
+  // This site's own repo: used to find the build files you put in projects/<slug>/releases/
+  site: { repo: "ramidev20/ramidev20.github.io", branch: "main" },
   name: "ramidev20",
   shortName: "ramidev",                // shown next to the logo
   location: "",                        // e.g. "Based in Lagos" (leave "" to hide)
@@ -91,8 +100,7 @@ const CONFIG = {
       repo: "ramidev-medical/medsync",
       platforms: ["Web"],
       tags: [],
-      autoRelease: true,
-      releasesRepo: "",                // private repo → e.g. "ramidev20/medsync-releases"
+      releasesFolder: true,            // builds go in projects/medsync/releases/<version>/
       versions: []
     },
     {
@@ -103,8 +111,7 @@ const CONFIG = {
       repo: "ramidev-other/fascia",
       platforms: ["Desktop"],
       tags: [],
-      autoRelease: true,
-      releasesRepo: "",                // private repo → e.g. "ramidev20/fascia-releases"
+      releasesFolder: true,            // builds go in projects/fascia/releases/<version>/
       versions: []
     },
     {
@@ -115,8 +122,7 @@ const CONFIG = {
       repo: "ramidev-other/daily-dz",
       platforms: ["Mobile"],
       tags: [],
-      autoRelease: true,
-      releasesRepo: "",                // private repo → e.g. "ramidev20/daily-dz-releases"
+      releasesFolder: true,            // builds go in projects/daily-dz/releases/<version>/
       versions: []
     }
   ]

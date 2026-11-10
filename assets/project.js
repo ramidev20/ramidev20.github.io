@@ -96,7 +96,7 @@ function renderProject(p) {
   </section>`;
 
   // No releases set up (e.g. a website): skip the versions section
-  if (!releaseSource(p) && !(p.versions && p.versions.length)) $("#versions").remove();
+  if (!hasVersionSource(p)) $("#versions").remove();
 
   const iconBox = projectIcon(p);
   iconBox.classList.add("big");
@@ -152,7 +152,7 @@ function renderReleases(p, list, latest) {
   const box = $("#releases");
   box.replaceChildren();
   if (!list.length) {
-    const msg = p.website && !releaseSource(p)
+    const msg = p.website && !p.releasesFolder && !releaseSource(p)
       ? `${esc(p.name)} runs in your browser, so there's nothing to download. <a href="${esc(p.website)}" target="_blank" rel="noopener">Open the app</a>.`
       : `No versions have been published yet. Check back soon${p.repo ? `, or follow the project on <a href="https://github.com/${esc(p.repo)}" target="_blank" rel="noopener">GitHub</a>` : ""}.`;
     box.innerHTML = `<div class="empty"><p>${msg}</p></div>`;

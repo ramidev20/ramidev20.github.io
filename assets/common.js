@@ -141,6 +141,56 @@ function manualVersions(p) {
   }));
 }
 const releaseSource = (p) => p.releasesRepo || (p.autoRelease ? p.repo : "");
+const hasVersionSource = (p) => !!(p.releasesFolder || releaseSource(p) || (p.versions && p.versions.length));
+
+/* ---------- Builds kept in the site repo: projects/<slug>/releases/<version>/<file> ----------
+   A static site can't list a folder, so this asks GitHub for the repo's file list
+   (one request per visit, shared by every project) and groups the files by version folder.
+   An optional notes.txt in a version folder becomes the release notes; a first line
+   "Date: 2026-11-10" sets the date. */
+function compareVersions(a, b) {
+  const pa = cleanTag(a).split(/-(.*)/), pb = cleanTag(b).split(/-(.*)/);
+  const na = pa[0].split("."), nb = pb[0].split(".");
+  for (let i = 0; i < Math.max(na.length, nb.length); i++) {
+    const d = (parseInt(na[i], 10) || 0) - (parseInt(nb[i], 10) || 0);
+    if (d) return d;
+  }
+  if (!!pa[1] !== !!pb[1]) return pa[1] ? -1 : 1;            // 1.2.0 is newer than 1.2.0-beta
+  return String(pa[1] || "").localeCompare(String(pb[1] || ""), undefined, { numeric: true });
+}
+async function folderVersions(p) {
+  const site = CONFIG.site || {};
+  if (!p.releasesFolder || !site.repo) return [];
+  const tree = await cachedJSON(`https://api.github.com/repos/${site.repo}/git/trees/${site.branch || "main"}?recursive=1`);
+  const base = `projects/${slugOf(p)}/releases/`;
+  const groups = {};
+  (tree.tree || []).forEach(n => {
+    if (n.type !== "blob" || !n.path.startsWith(base)) return;
+    const parts = n.path.slice(base.length).split("/");
+    if (parts.length !== 2 || parts[1].startsWith(".")) return;     // only releases/<version>/<file>
+    const [ver, file] = parts;
+    const g = groups[ver] || (groups[ver] = { files: [], notes: false });
+    if (/^notes\.txt$/i.test(file)) { g.notes = true; return; }
+    g.files.push({ name: file, url: ROOT + n.path.split("/").map(encodeURIComponent).join("/"),
+                   size: n.size, platform: platformOf(file), local: true });
+  });
+  const list = Object.entries(groups).filter(([, g]) => g.files.length).map(([ver, g]) => ({
+    tag: ver, name: "", date: "", prerelease: /-(alpha|beta|rc|pre|dev|test)/i.test(ver), notes: "", url: "",
+    files: g.files, notesUrl: g.notes ? `${ROOT}${base}${encodeURIComponent(ver)}/notes.txt` : ""
+  }));
+  list.sort((a, b) => compareVersions(b.tag, a.tag));
+  await Promise.all(list.map(async v => {
+    if (!v.notesUrl) return;
+    try {
+      const res = await fetch(v.notesUrl);
+      if (!res.ok) return;
+      const text = await res.text();
+      const m = text.match(/^\s*date:\s*(.+?)\s*(\n|$)/i);
+      if (m) { v.date = m[1]; v.notes = text.slice(m[0].length); } else v.notes = text;
+    } catch (e) {}
+  }));
+  return list;
+}
 
 async function cachedJSON(url) {
   const key = "gh:" + url;
@@ -153,11 +203,18 @@ async function cachedJSON(url) {
 }
 // Every version, newest first (GitHub first, then the hand-written list)
 async function loadVersions(p) {
+  if (p.releasesFolder) {
+    try { const out = await folderVersions(p); if (out.length) return out; } catch (e) {}
+  }
   const repo = releaseSource(p);
   if (repo) {
     try {
-      const list = await cachedJSON(`https://api.github.com/repos/${repo}/releases?per_page=50`);
-      const out = list.filter(r => !r.draft).map(slimRelease);
+      const list = await cachedJSON(`https://api.github.com/repos/${repo}/releases?per_page=100`);
+      // Several apps can share one releases repo: each keeps only tags starting with its tagPrefix
+      const prefix = p.tagPrefix || "";
+      const out = list
+        .filter(r => !r.draft && r.tag_name.startsWith(prefix))
+        .map(r => { const v = slimRelease(r); v.tag = v.tag.slice(prefix.length); return v; });
       if (out.length) return out;
     } catch (e) {}
   }
@@ -181,6 +238,7 @@ function downloadButton(f, accent) {
   const size = f.size ? ` <small>${esc(formatSize(f.size))}</small>` : "";
   const a = el("a", { class: `btn caps${accent ? " accent" : ""}`, href: f.url, rel: "noopener" }, `${ICONS.download}<span>${esc(f.title || "Download")}</span>${size}`);
   if (f.name) a.title = f.name;
+  if (f.local) a.setAttribute("download", f.name || "");   // files on this site: save instead of opening
   return a;
 }
 
